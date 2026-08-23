@@ -18,14 +18,13 @@ Executar com:
     pytest test_app.py -v
 """
 
+import importlib
 import os
 import sys
-import importlib
 from unittest.mock import MagicMock, patch
 
 import pytest
 import requests as requests_lib
-
 
 # --- Variáveis de ambiente exigidas pelo app.py na importação ---
 os.environ.setdefault("DATABASE_URL", "postgres://test:test@localhost:5432/testdb")
@@ -88,6 +87,7 @@ def mock_auth_invalid(app_module):
 # /health
 # ----------------------------------------------------------------------
 
+
 def test_health_check(client):
     response = client.get("/health")
     assert response.status_code == 200
@@ -98,6 +98,7 @@ def test_health_check(client):
 # Middleware de autenticação (require_auth)
 # ----------------------------------------------------------------------
 
+
 def test_flags_sem_header_authorization(client):
     response = client.get("/flags")
     assert response.status_code == 401
@@ -106,13 +107,17 @@ def test_flags_sem_header_authorization(client):
 
 def test_flags_com_chave_invalida(client, app_module):
     with mock_auth_invalid(app_module):
-        response = client.get("/flags", headers={"Authorization": "Bearer chave-invalida"})
+        response = client.get(
+            "/flags", headers={"Authorization": "Bearer chave-invalida"}
+        )
     assert response.status_code == 401
     assert response.get_json()["error"] == "Chave de API inválida"
 
 
 def test_flags_auth_service_timeout(client, app_module):
-    with patch.object(app_module.requests, "get", side_effect=requests_lib.exceptions.Timeout):
+    with patch.object(
+        app_module.requests, "get", side_effect=requests_lib.exceptions.Timeout
+    ):
         response = client.get("/flags", headers={"Authorization": "Bearer qualquer"})
     assert response.status_code == 504
 
@@ -130,6 +135,7 @@ def test_flags_auth_service_indisponivel(client, app_module):
 # ----------------------------------------------------------------------
 # POST /flags (create_flag)
 # ----------------------------------------------------------------------
+
 
 def test_create_flag_sucesso(client, app_module, mock_db_conn):
     _, mock_cursor = mock_db_conn
@@ -180,6 +186,7 @@ def test_create_flag_duplicada(client, app_module, mock_db_conn):
 # GET /flags (get_flags) e GET /flags/<name> (get_flag)
 # ----------------------------------------------------------------------
 
+
 def test_get_flags_sucesso(client, app_module, mock_db_conn):
     _, mock_cursor = mock_db_conn
     mock_cursor.fetchall.return_value = [
@@ -188,7 +195,9 @@ def test_get_flags_sucesso(client, app_module, mock_db_conn):
     ]
 
     with mock_auth_ok(app_module):
-        response = client.get("/flags", headers={"Authorization": "Bearer chave-valida"})
+        response = client.get(
+            "/flags", headers={"Authorization": "Bearer chave-valida"}
+        )
 
     assert response.status_code == 200
     assert len(response.get_json()) == 2
@@ -222,6 +231,7 @@ def test_get_flag_nao_encontrada(client, app_module, mock_db_conn):
 # ----------------------------------------------------------------------
 # PUT /flags/<name> (update_flag)
 # ----------------------------------------------------------------------
+
 
 def test_update_flag_sem_corpo(client, app_module):
     with mock_auth_ok(app_module):
@@ -278,6 +288,7 @@ def test_update_flag_nao_encontrada(client, app_module, mock_db_conn):
 # ----------------------------------------------------------------------
 # DELETE /flags/<name> (delete_flag)
 # ----------------------------------------------------------------------
+
 
 def test_delete_flag_sucesso(client, app_module, mock_db_conn):
     _, mock_cursor = mock_db_conn

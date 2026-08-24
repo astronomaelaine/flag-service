@@ -96,29 +96,29 @@ jobs:
             --exit-code 1 \
             .
 
-  # sast-bandit:
-  #   name: SAST / Bandit
-  #   needs: lint
-  #   runs-on: ubuntu-latest
+  sast-bandit:
+    name: SAST / Bandit
+    needs: lint
+    runs-on: ubuntu-latest
 
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v6
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
 
-  #     - name: Set up Python
-  #       uses: actions/setup-python@v5
-  #       with:
-  #         python-version: "3.12"
-  #         cache: "pip"
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
 
-  #     - name: Install bandit
-  #       run: pip install bandit
+      - name: Install bandit
+        run: pip install bandit
 
-  #     - name: Bandit full report
-  #       run: bandit -r . -x ./tests --exit-zero
+      - name: Bandit full report
+        run: bandit -r . -x ./tests --exit-zero
 
-  #     - name: Run bandit quality gate
-  #       run: bandit -r . -x ./tests -ll -ii
+      - name: Run bandit quality gate
+        run: bandit -r . -x ./tests -ll -ii
 
   # sonarcloud:
   #   name: SAST / SonarQube Cloud

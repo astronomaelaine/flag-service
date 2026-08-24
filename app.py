@@ -116,7 +116,7 @@ def create_flag():
             conn.rollback()
         log.warning(f"Tentativa de criar flag duplicada: '{name}'")
         return jsonify({"error": f"Flag '{name}' já existe"}), 409
-    except Exception as e: # noqa: BLE001
+    except Exception as e:  # noqa: BLE001
         if conn:
             conn.rollback()
         log.error(f"Erro ao criar flag: {e}")
@@ -140,7 +140,7 @@ def get_flags():
         cur.execute("SELECT * FROM flags ORDER BY name")
         flags = cur.fetchall()
         return jsonify(flags)
-    except Exception as e: # noqa: BLE001
+    except Exception as e:  # noqa: BLE001
         log.error(f"Erro ao buscar flags: {e}")
         return jsonify({"error": "Erro interno do servidor", "details": str(e)}), 500
     finally:
@@ -164,7 +164,7 @@ def get_flag(name):
         if not flag:
             return jsonify({"error": "Flag não encontrada"}), 404
         return jsonify(flag)
-    except Exception as e: # noqa: BLE001
+    except Exception as e:  # noqa: BLE001
         log.error(f"Erro ao buscar flag '{name}': {e}")
         return jsonify({"error": "Erro interno do servidor", "details": str(e)}), 500
     finally:
@@ -216,7 +216,7 @@ def update_flag(name):
         conn.commit()
         log.info(f"Flag '{name}' atualizada com sucesso.")
         return jsonify(updated_flag), 200
-    except Exception as e: # noqa: BLE001
+    except Exception as e:  # noqa: BLE001
         if conn:
             conn.rollback()
         log.error(f"Erro ao atualizar flag '{name}': {e}")
@@ -245,7 +245,7 @@ def delete_flag(name):
         conn.commit()
         log.info(f"Flag '{name}' deletada com sucesso.")
         return "", 204  # 204 No Content
-    except Exception as e: # noqa: BLE001
+    except Exception as e:  # noqa: BLE001
         if conn:
             conn.rollback()
         log.error(f"Erro ao deletar flag '{name}': {e}")

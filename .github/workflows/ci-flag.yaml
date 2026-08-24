@@ -65,36 +65,36 @@ jobs:
       - name: Run ruff lint
         run: ruff check .
 
-  # sca-trivy:
-  #   name: SCA / Trivy
-  #   needs: lint
-  #   runs-on: ubuntu-latest
+  sca-trivy:
+    name: SCA / Trivy
+    needs: lint
+    runs-on: ubuntu-latest
 
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v6
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
 
-  #     - name: Install Trivy
-  #       uses: aquasecurity/setup-trivy@v0.2.6
-  #       with:
-  #         version: v0.70.0
-  #         cache: true
+      - name: Install Trivy
+        uses: aquasecurity/setup-trivy@v0.2.6
+        with:
+          version: v0.70.0
+          cache: true
 
-  #     - name: Trivy full vulnerability report
-  #       run: |
-  #         trivy fs \
-  #           --scanners vuln \
-  #           --severity LOW,MEDIUM,HIGH,CRITICAL \
-  #           --exit-code 0 \
-  #           .
+      - name: Trivy full vulnerability report
+        run: |
+          trivy fs \
+            --scanners vuln \
+            --severity LOW,MEDIUM,HIGH,CRITICAL \
+            --exit-code 0 \
+            .
 
-  #     - name: Trivy critical vulnerability quality gate
-  #       run: |
-  #         trivy fs \
-  #           --scanners vuln \
-  #           --severity CRITICAL \
-  #           --exit-code 1 \
-  #           .
+      - name: Trivy critical vulnerability quality gate
+        run: |
+          trivy fs \
+            --scanners vuln \
+            --severity CRITICAL \
+            --exit-code 1 \
+            .
 
   # sast-bandit:
   #   name: SAST / Bandit

@@ -143,3 +143,73 @@ jobs:
           test "$LINT_RESULT" = "success"
           test "$SCA_RESULT" = "success"
           test "$SAST_RESULT" = "success"
+
+  docker-build-push:
+    name: Docker Build / Scan / Push ECR
+
+    needs:
+      - ci-success
+
+    if: >
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/TC_fase03'
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+      ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+      IMAGE_NAME: "flag-service"
+      APP_VERSION: ${{ vars.APP_VERSION }}
+
+      # AWS_REGION: ${{ inputs.aws-region }}
+      # AWS_ROLE_ARN: ${{ inputs.aws-role-arn }}
+      # ECR_REPOSITORY: ${{ inputs.ecr-repository }}
+      # IMAGE_NAME: ${{ inputs.image-name }}
+      # APP_VERSION: ${{ inputs.app-version }}
+
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Generate Docker image tag
+        shell: bash
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          IMAGE_TAG="${APP_VERSION}-${SHORT_SHA}"
+          echo "IMAGE_TAG=$IMAGE_TAG" >> "$GITHUB_ENV"
+          echo "Generated image tag: $IMAGE_TAG"
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t "${IMAGE_NAME}:${IMAGE_TAG}" \
+            .
+      - name: Install Trivy
+        uses: aquasecurity/setup-trivy@v0.2.6
+        with:
+          version: v0.74.0
+          cache: true
+
+      - name: Trivy container vulnerability report
+        run: |
+          trivy image \
+            --scanners vuln \
+            --severity LOW,MEDIUM,HIGH,CRITICAL \
+            --exit-code 0 \
+            "${IMAGE_NAME}:${IMAGE_TAG}"
+
+      - name: Trivy critical vulnerability quality gate
+        run: |
+          trivy image \
+            --scanners vuln \
+            --severity CRITICAL \
+            --exit-code 1 \
+            "${IMAGE_NAME}:${IMAGE_TAG}"
+          

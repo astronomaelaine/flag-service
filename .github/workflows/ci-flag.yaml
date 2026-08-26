@@ -191,19 +191,19 @@ jobs:
           docker build \
             -t "${IMAGE_NAME}:${IMAGE_TAG}" \
             .
-      - name: Install Trivy
-        uses: aquasecurity/setup-trivy@v0.2.6
-        with:
-          version: v0.74.0
-          cache: true
+      # - name: Install Trivy
+      #   uses: aquasecurity/setup-trivy@v0.2.6
+      #   with:
+      #     version: v0.74.0
+      #     cache: true
 
-      - name: Trivy container vulnerability report
-        run: |
-          trivy image \
-            --scanners vuln \
-            --severity LOW,MEDIUM,HIGH,CRITICAL \
-            --exit-code 0 \
-            "${IMAGE_NAME}:${IMAGE_TAG}"
+      # - name: Trivy container vulnerability report
+      #   run: |
+      #     trivy image \
+      #       --scanners vuln \
+      #       --severity LOW,MEDIUM,HIGH,CRITICAL \
+      #       --exit-code 0 \
+      #       "${IMAGE_NAME}:${IMAGE_TAG}"
 
       # - name: Trivy critical vulnerability quality gate
       #   run: |
@@ -213,14 +213,13 @@ jobs:
       #       --exit-code 1 \
       #       "${IMAGE_NAME}:${IMAGE_TAG}"
 
-      - name: Debug ARN
+      - name: Debug ARN (hex)
         run: |
-          echo "ARN length: ${#AWS_ROLE_ARN}"
-          echo "ARN value: ${{ env.AWS_ROLE_ARN }}"
+          echo -n "${{ env.AWS_ROLE_ARN }}" | xxd | tail -5
+          echo "---"
+          echo -n "${{ env.AWS_ROLE_ARN }}" | cat -A
 
-          echo "REGION value: ${{ env.AWS_REGION }}"
-        
-      
+           
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:

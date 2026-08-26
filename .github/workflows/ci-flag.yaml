@@ -196,7 +196,7 @@ jobs:
       #   with:
       #     version: v0.74.0
       #     cache: true
-
+#
       # - name: Trivy container vulnerability report
       #   run: |
       #     trivy image \

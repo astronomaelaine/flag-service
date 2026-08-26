@@ -218,7 +218,7 @@ jobs:
           echo "ARN length: ${#AWS_ROLE_ARN}"
           echo "ARN value: ${{ env.AWS_ROLE_ARN }}"
 
-          echo "REGION value: ${{ env.AWS_REGION }}
+          echo "REGION value: ${{ env.AWS_REGION }}"
         
       
       - name: Configure AWS credentials

@@ -16,7 +16,7 @@ jobs:
   ci:
     name: Flag Service CI
 
-    uses: astronomaelaine/CI-reusable-source/.github/workflows/ci-reusable.yml@v1.6.0
+    uses: astronomaelaine/CI-reusable-source-py/blob/main/.github/ci-reusable.yml
 
     permissions:
       contents: read

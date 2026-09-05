@@ -1,6 +1,7 @@
 name: Flag Service CI
 
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches:
@@ -8,252 +9,22 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
-  build-and-test:
-    name: Build and Test
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: "pip"
-          cache-dependency-path: requirements.txt
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Run tests with coverage
-        run: |
-          pip install pytest pytest-cov
-          pytest --cov=./ --cov-report=xml
-
-# não tem necessidade de buildar o pacote, pois não é um pacote python, é apenas um serviço
-      # - name: Build package
-      #   run: |
-      #     pip install build
-      #     python -m build
-
-  lint:
-    name: Linter / Static Analysis
-    needs: build-and-test
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: "pip"
-
-      - name: Install lint tools
-        run: pip install ruff
-
-      - name: Check formatting
-        run: ruff format --check .
-
-      - name: Run ruff lint
-        run: ruff check .
-
-  sca-trivy:
-    name: SCA / Trivy
-    needs: lint
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Install Trivy
-        uses: aquasecurity/setup-trivy@v0.2.6
-        with:
-          version: v0.70.0
-          cache: true
-
-      - name: Trivy full vulnerability report
-        run: |
-          trivy fs \
-            --scanners vuln \
-            --severity LOW,MEDIUM,HIGH,CRITICAL \
-            --exit-code 0 \
-            .
-
-      - name: Trivy critical vulnerability quality gate
-        run: |
-          trivy fs \
-            --scanners vuln \
-            --severity CRITICAL \
-            --exit-code 1 \
-            .
-
-  sast-bandit:
-    name: SAST / Bandit
-    needs: lint
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: "pip"
-
-      - name: Install bandit
-        run: pip install bandit
-
-      - name: Bandit full report
-        run: bandit -r . -x ./tests --exit-zero
-
-      - name: Run bandit quality gate
-        run: bandit -r . -x ./tests -lll -iii
-
   
-  ci-success:
-    name: CI Security Gate
-    if: ${{ always() }}
-    needs:
-      - build-and-test
-      - lint
-      - sca-trivy
-      - sast-bandit
-    runs-on: ubuntu-latest
+  ci:
+    name: Flag Service CI
 
-    steps:
-      - name: Verify all required jobs
-        env:
-          BUILD_RESULT: ${{ needs.build-and-test.result }}
-          LINT_RESULT: ${{ needs.lint.result }}
-          SCA_RESULT: ${{ needs.sca-trivy.result }}
-          SAST_RESULT: ${{ needs.sast-bandit.result }}
-        run: |
-          test "$BUILD_RESULT" = "success"
-          test "$LINT_RESULT" = "success"
-          test "$SCA_RESULT" = "success"
-          test "$SAST_RESULT" = "success"
-
-  docker-build-push:
-    name: Docker Build / Scan / Push ECR
-
-    needs:
-      - ci-success
-
-    if: >
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/TC_fase03'
-
-    runs-on: ubuntu-latest
+    uses: astronomaelaine/CI-reusable-source/.github/workflows/ci-reusable.yml@v1.6.0
 
     permissions:
       contents: read
       id-token: write
 
-    env:
-      AWS_REGION: ${{ vars.AWS_REGION }}
-      AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
-      ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
-      IMAGE_NAME: "flag-service"
-      APP_VERSION: ${{ vars.APP_VERSION }}
-
-      # AWS_REGION: ${{ inputs.aws-region }}
-      # AWS_ROLE_ARN: ${{ inputs.aws-role-arn }}
-      # ECR_REPOSITORY: ${{ inputs.ecr-repository }}
-      # IMAGE_NAME: ${{ inputs.image-name }}
-      # APP_VERSION: ${{ inputs.app-version }}
-
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Generate Docker image tag
-        shell: bash
-        run: |
-          SHORT_SHA="${GITHUB_SHA::7}"
-          IMAGE_TAG="${APP_VERSION}-${SHORT_SHA}"
-          echo "IMAGE_TAG=$IMAGE_TAG" >> "$GITHUB_ENV"
-          echo "Generated image tag: $IMAGE_TAG"
-
-      - name: Build Docker image
-        run: |
-          docker build \
-            -t "${IMAGE_NAME}:${IMAGE_TAG}" \
-            .
-      # - name: Install Trivy
-      #   uses: aquasecurity/setup-trivy@v0.2.6
-      #   with:
-      #     version: v0.70.0
-      #     cache: true
-
-      # - name: Trivy container vulnerability report
-      #   run: |
-      #     trivy image \
-      #       --scanners vuln \
-      #       --severity LOW,MEDIUM,HIGH,CRITICAL \
-      #       --exit-code 0 \
-      #       "${IMAGE_NAME}:${IMAGE_TAG}"
-
-      # - name: Trivy critical vulnerability quality gate
-      #   run: |
-      #     trivy image \
-      #       --scanners vuln \
-      #       --severity CRITICAL \
-      #       --exit-code 1 \
-      #       "${IMAGE_NAME}:${IMAGE_TAG}"
-
-      # - name: Debug ARN (hex)
-      #   run: |
-      #     echo -n "${{ env.AWS_ROLE_ARN }}" | xxd | tail -5
-      #     echo "---"
-      #     echo -n "${{ env.AWS_ROLE_ARN }}" | cat -A
-
-           
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ env.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-          role-session-name: github-actions-${{ github.event.repository.name }}
-
-          
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-
-      - name: Tag image for Amazon ECR
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-
-        run: |
-          ECR_IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
-
-          docker tag \
-            "${IMAGE_NAME}:${IMAGE_TAG}" \
-            "$ECR_IMAGE"
-
-          echo "ECR_IMAGE=$ECR_IMAGE" >> "$GITHUB_ENV"
-          echo "ECR image: $ECR_IMAGE"
-
-      - name: Push Docker image to Amazon ECR
-        run: |
-          docker push "$ECR_IMAGE"
-
-      - name: Docker image summary
-        run: |
-          echo "### Docker image published" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "\`$ECR_IMAGE\`" >> "$GITHUB_STEP_SUMMARY"            
-          
+    with:
+      aws-region: ${{ vars.AWS_REGION }}
+      aws-role-arn: ${{ vars.AWS_ROLE_ARN }}
+      ecr-repository: ${{ vars.ECR_REPOSITORY }}
+      image-name: "flag-service"
+      app-version: ${{ vars.APP_VERSION }}
